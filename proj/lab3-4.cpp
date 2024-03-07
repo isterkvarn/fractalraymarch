@@ -74,8 +74,9 @@ float move_speed = 0.001;
 float prev_t;
 
 void mouse_moved(int mx, int my) {
-  lookh = mx / 300.0;
-  lookv = my / 300.0;
+  lookh -= (100 - mx) / 1000.0;
+  lookv -= (100 - my) / 1000.0;
+  glutWarpPointer(100, 100);
 }
 
 
@@ -88,39 +89,38 @@ void display(void)
   prev_t = t;
 
   if (glutKeyIsDown('w')) {
-    px -= delta * sin(-lookh) * move_speed;
-    pz -= delta * cos(-lookh) * move_speed;
+    px -= delta * sin(-lookh) * cos(-lookv) * move_speed;
+    py -= delta * sin(lookv) * move_speed;
+    pz -= delta * cos(-lookh) * cos(-lookv) * move_speed;
   }
   if (glutKeyIsDown('a')) {
     px -= delta * cos(lookh) * move_speed;
     pz -= delta * sin(lookh) * move_speed;
   }
   if (glutKeyIsDown('s')) {
-    px += delta * sin(-lookh) * move_speed;
-    pz += delta * cos(-lookh) * move_speed;
+    px += delta * sin(-lookh) * cos(-lookv) * move_speed;
+    py += delta * sin(lookv) * move_speed;
+    pz += delta * cos(-lookh) * cos(-lookv) * move_speed;
   }
   if (glutKeyIsDown('d')) {
     px += delta * cos(lookh) * move_speed;
     pz += delta * sin(lookh) * move_speed;
   }
 
-    vec3 p = vec3(px, 0, pz);
+    vec3 p = vec3(px, py, pz);
     camMatrix = lookAtv(p, p + vec3(cos(-lookh), 0, -sin(-lookh)), vec3(0, 1, 0));
 	printError("pre display");
 
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,
                      camMatrix.m);
-	glUniform2f(glGetUniformLocation(program, "cameraCoord"), px, pz);
+	glUniform3f(glGetUniformLocation(program, "cameraCoord"), px, py, pz);
 
-    t = (GLfloat)glutGet(GLUT_ELAPSED_TIME) / 4800;
-    GLfloat rotMatrix_x[] = {1.0f,    0.0f, 0.0f, 0.0f,   0.0f,   cos(lookv),
-                           -sin(lookv), 0.0f, 0.0f, sin(lookv), cos(lookv), 0.0f,
+    GLfloat rotMatrix_x[] = {1.0f,    0.0f, 0.0f, 0.0f,   0.0f,   cos(-lookv),
+                           -sin(-lookv), 0.0f, 0.0f, sin(-lookv), cos(-lookv), 0.0f,
                            0.0f,    0.0f, 0.0f, 1.0f};
 
-    t = (GLfloat)glutGet(GLUT_ELAPSED_TIME) / 5800;
     GLfloat rotMatrix_y[] = {cos(-lookh),  0.0f, sin(-lookh), 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
                            -sin(-lookh), 0.0f, cos(-lookh), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
-    //t = 10 - 8*sin((GLfloat)glutGet(GLUT_ELAPSED_TIME) / 10000);
     t = 0.5 + 0.5*sin((GLfloat)glutGet(GLUT_ELAPSED_TIME) / 1000);
     glUniformMatrix4fv(glGetUniformLocation(program, "rotMatrix_x"), 1, GL_TRUE,
                      rotMatrix_x);
@@ -148,8 +148,9 @@ int main(int argc, char *argv[])
 	glutInitWindowSize(1800, 1200);
 	glutCreateWindow ("Raymarch fractal");
 	glutDisplayFunc(display);
-    glutRepeatingTimer(10);
-    glutPassiveMotionFunc(mouse_moved);
+	glutRepeatingTimer(10);
+    	glutPassiveMotionFunc(mouse_moved);
+  	glutHideCursor();
 	init ();
 	glutMainLoop();
 	return 0;

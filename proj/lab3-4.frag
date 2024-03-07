@@ -6,9 +6,9 @@ uniform  mat4 rotMatrix_x;
 uniform  mat4 rotMatrix_y;
 uniform  mat4 worldToView;
 uniform  float osillator;
-uniform  vec2 cameraCoord;
+uniform  vec3 cameraCoord;
 
-float distance_estimator2(vec3 z){
+float distance_estimator1(vec3 z){
 		float Scale = 2.0;
 		vec3 a1 = vec3(rotMatrix_x * vec4(1,1,1,1));
 		vec3 a2 = vec3(rotMatrix_x * vec4(-1,-1,1,1));
@@ -29,14 +29,14 @@ float distance_estimator2(vec3 z){
 		return length(z) * pow(Scale, float(-n));
 }
 
-float distance_estimator1(vec3 position){
+float distance_estimator2(vec3 position){
 	vec3 z = vec3(rotMatrix_x * rotMatrix_y * vec4(position, 1.0));
 	//z = mod(z + 1, 1.0) -1;
 	float dr = 1.0;
 	float r = 0.0;
 	const int Iterations = 8;
 	const int Bailout= 5;
-	float Power = osillator;
+	float Power = 20*osillator;
 	for (int i = 0; i < Iterations ; i++) {
 		r = length(z);
 		if (r>Bailout) break;
@@ -59,8 +59,8 @@ float distance_estimator1(vec3 position){
 }
 
 void sphereFold(inout vec3 z, inout float dz) {
-	float minRadius = 0.1;
-	float fixedRadius = 0.7;
+	float minRadius = 0.001;
+	float fixedRadius = 0.6; //+ 0.8*osillator;
 	float r = dot(z,z);
 	if (r<minRadius) { 
 		// linear inner scaling
@@ -76,7 +76,7 @@ void sphereFold(inout vec3 z, inout float dz) {
 }
 
 void boxFold(inout vec3 z, inout float dz) {
-	float foldingLimit = 0.60;
+	float foldingLimit = 0.70;
 	z = clamp(z, -foldingLimit, foldingLimit) * 2.0 - z;
 }
 
@@ -86,14 +86,13 @@ float distance_estimator(vec3 position)
 	vec3 z = position;
 	vec3 offset = z;
 	float dr = 1.0;
-	const int Iterations = 14;
+	const int Iterations = 10;
 	float Scale = 2.4;
 	for (int n = 0; n < Iterations; n++) {
 		boxFold(z,dr);       // Reflect
-		sphereFold(z,dr);    // Sphere Inversion
- 		
-                z=Scale*z + offset;  // Scale & Translate
-                dr = dr*abs(Scale)+1.0;
+		sphereFold(z, dr);    // Sphere Inversion
+        z=Scale*z + offset;  // Scale & Translate
+        dr = dr*abs(Scale)+1.0;
 	}
 	float r = length(z);
 	return r/abs(dr);
@@ -102,9 +101,9 @@ float distance_estimator(vec3 position)
 vec4 rayMarch(vec3 start, vec3 direction){
 
 	float traveled_distance = 0;
-	const float AMBIENT_OCC = 48;
+	const float AMBIENT_OCC = 64;
 	const int MAX_ITERATIONS = 64;
-	const float MIN_DISTANCE = 0.0001;
+	const float MIN_DISTANCE = 0.0004;
 	const float MAX_DISTANCE = 1000;
 
 	for (int i = 0; i < MAX_ITERATIONS; ++i){
@@ -114,18 +113,18 @@ vec4 rayMarch(vec3 start, vec3 direction){
 		float closes_distance = distance_estimator(current_position);
 
 		if (closes_distance < MIN_DISTANCE){
-			return max(0.3, AMBIENT_OCC-i)/AMBIENT_OCC * vec4(0.8, 0.05, 0.05, 1.0);
+			return max(0.3, (AMBIENT_OCC-i)/AMBIENT_OCC) * vec4(1.0, 0.05, 0.05, 1.0);
 		}
 
 		if (closes_distance > MAX_DISTANCE){
-			return vec4(0.05, 0.05, 0.05, 1.0);
+		    return 0.1 * vec4(1.0, 0.05, 0.05, 1.0);
 		}
 
 		traveled_distance += closes_distance;
 
 	}
 		
-	return vec4(0.05, 0.05, 0.05, 1.0);
+	return 0.1 * vec4(1.0, 0.05, 0.05, 1.0);
 }
 
 void main(void)
@@ -133,7 +132,7 @@ void main(void)
 	vec2 uv;
 	uv.x = gl_FragCoord.x/1800 - 0.5;
 	uv.y = gl_FragCoord.y/1200 - 0.5;
-	vec3 camera = vec3(cameraCoord.x, 0, cameraCoord.y);
-	vec3 ray_direction = normalize(vec3(rotMatrix_x * rotMatrix_y*vec4(uv.x, uv.y, -1.0, 1.0))); 
+	vec3 camera = vec3(cameraCoord.x, cameraCoord.y, cameraCoord.z);
+	vec3 ray_direction = normalize(vec3( rotMatrix_y * rotMatrix_x  * vec4(uv.x, uv.y, -1.0, 1.0))); 
 	out_Color = rayMarch(camera, ray_direction);
 }
