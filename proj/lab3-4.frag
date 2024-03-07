@@ -60,7 +60,7 @@ float distance_estimator2(vec3 position){
 
 void sphereFold(inout vec3 z, inout float dz) {
 	float minRadius = 0.001;
-	float fixedRadius = 0.6; //+ 0.8*osillator;
+	float fixedRadius = 0.6 + 0.8*osillator;
 	float r = dot(z,z);
 	if (r<minRadius) { 
 		// linear inner scaling

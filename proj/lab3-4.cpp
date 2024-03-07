@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 	glutInitWindowSize(1800, 1200);
 	glutCreateWindow ("Raymarch fractal");
 	glutDisplayFunc(display);
-	glutRepeatingTimer(10);
+	glutRepeatingTimer(2);
     	glutPassiveMotionFunc(mouse_moved);
   	glutHideCursor();
 	init ();
